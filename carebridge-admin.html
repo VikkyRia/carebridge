@@ -1,0 +1,1372 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>CareBridge OVC — Admin Portal</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="carebridge-admin.css" />
+  </head>
+  <body>
+    <!-- ══ TOP NAV ══ -->
+    <div class="topnav">
+      <div class="topnav-logo">
+        Care<span>Bridge</span> OVC <span class="admin-badge">Admin</span>
+      </div>
+      <div class="topnav-right">
+        <div class="topnav-time" id="clock">—</div>
+        <div
+          class="topnav-alert"
+          onclick="showAlert()"
+          data-tip="System alerts"
+        >
+          <span style="font-size: 16px">🔔</span>
+          <span class="alert-dot"></span>
+        </div>
+        <!-- USER CHIP: avatar + name + status pill + action button -->
+        <div class="topnav-user">
+          <div class="user-av" id="auth-avatar">G</div>
+          <div style="display: flex; flex-direction: column; line-height: 1.2">
+            <span class="user-name" id="auth-name">Guest</span>
+            <!-- <span
+              class="auth-pill"
+              id="auth-pill"
+              style="color: rgba(255, 255, 255, 0.3)"
+              >○ Guest</span
+            > -->
+          </div>
+          <button
+            id="auth-button"
+            class="btn-signin"
+            onclick="toggleAuthModal()"
+          >
+            Sign in
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="shell">
+      <!-- ══ SIDEBAR ══ -->
+      <div class="sidebar">
+        <div
+          class="sb-item active"
+          data-nav="dashboard"
+          onclick="nav('dashboard')"
+        >
+          <span class="sb-icon">⊞</span> Dashboard
+        </div>
+        <div class="sb-item" data-nav="facilities" onclick="nav('facilities')">
+          <span class="sb-icon">🏠</span> Facilities
+          <span
+            class="sb-badge"
+            id="sb-pending-badge"
+            style="display: none"
+          ></span>
+        </div>
+        <div class="sb-item" data-nav="needs" onclick="nav('needs')">
+          <span class="sb-icon">📋</span> Needs
+        </div>
+        <div class="sb-item" data-nav="donors" onclick="nav('donors')">
+          <span class="sb-icon">👥</span> Donors
+        </div>
+        <div class="sb-item" data-nav="finance" onclick="nav('finance')">
+          <span class="sb-icon">💳</span> Finance
+        </div>
+        <div class="sb-item" data-nav="system" onclick="nav('system')">
+          <span class="sb-icon">⚙️</span> System
+        </div>
+        <div class="sb-bottom">
+          <div class="sb-divider"></div>
+          <div
+            class="sb-item"
+            style="
+              color: rgba(255, 255, 255, 0.2);
+              font-size: 11px;
+              cursor: default;
+            "
+          >
+            v1.0 · Pilot Phase
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ MAIN ══ -->
+      <div class="main">
+        <!-- ═══════ DASHBOARD ═══════ -->
+        <div id="view-dashboard" class="view active">
+          <div class="page-hd">
+            <div>
+              <h1>Operations Dashboard</h1>
+              <p>Ibadan &amp; Lagos pilot · <span id="dash-time">—</span></p>
+            </div>
+            <div class="hd-actions">
+              <button class="btn btn-outline btn-sm" onclick="exportReport()">
+                Export Report
+              </button>
+              <button
+                class="btn btn-primary btn-sm"
+                onclick="
+                  nav('facilities');
+                  setSubTab('facilities', 'pending');
+                "
+              >
+                Review Queue (—)
+              </button>
+            </div>
+          </div>
+
+          <!-- Alerts -->
+          <div class="alert-banner ab-red">
+            <span class="ab-icon">⚠</span>
+            <div>
+              <strong id="alert-unmatched-text"
+                >— needs unmatched for over 24 hours</strong
+              >
+              — escalation required.
+              <span
+                style="text-decoration: underline; cursor: pointer"
+                onclick="
+                  nav('needs');
+                  setSubTab('needs', 'unmatched');
+                "
+                >Review →</span
+              >
+            </div>
+          </div>
+          <div class="alert-banner ab-amber">
+            <span class="ab-icon">⏱</span>
+            <div>
+              <strong id="alert-overdue-text"
+                >— fulfillments awaiting admin verification</strong
+              >
+              <span
+                style="
+                  text-decoration: underline;
+                  cursor: pointer;
+                  margin-left: 4px;
+                "
+                onclick="
+                  nav('needs');
+                  setSubTab('needs', 'fulfilled');
+                "
+                >View →</span
+              >
+            </div>
+          </div>
+
+          <!-- Stat cards -->
+          <div class="stat-row">
+            <div class="stat-card" style="--accent: var(--teal)">
+              <div class="stat-label">Verified Facilities</div>
+              <div class="stat-val" id="stat-verified-count">—</div>
+              <div class="stat-sub" id="stat-verified-sub">Loading…</div>
+              <div class="stat-icon">🏠</div>
+            </div>
+            <div class="stat-card" style="--accent: var(--blue)">
+              <div class="stat-label">Active Needs</div>
+              <div class="stat-val" id="stat-active-needs">—</div>
+              <div class="stat-sub" id="stat-active-needs-sub">Loading…</div>
+              <div class="stat-icon">📋</div>
+            </div>
+            <div class="stat-card" style="--accent: var(--green)">
+              <div class="stat-label">Total Donated</div>
+              <div class="stat-val" id="stat-donations-total">—</div>
+              <div class="stat-sub" id="stat-donations-sub">
+                Sign in to view
+              </div>
+              <div class="stat-icon">💳</div>
+            </div>
+            <div class="stat-card" style="--accent: var(--purple)">
+              <div class="stat-label">Fulfillment Rate</div>
+              <div class="stat-val" id="stat-fulfillment-rate">—</div>
+              <div class="stat-sub" id="stat-fulfillment-sub">—</div>
+              <div class="stat-icon">✓</div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <!-- Pending queue -->
+            <div class="table-wrap">
+              <div class="table-hd">
+                <div>
+                  <h3>Pending Verification</h3>
+                  <p>Facilities awaiting field agent review</p>
+                </div>
+                <button
+                  class="btn btn-outline btn-sm"
+                  onclick="
+                    nav('facilities');
+                    setSubTab('facilities', 'pending');
+                  "
+                >
+                  View all
+                </button>
+              </div>
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Facility</th>
+                    <th>Location</th>
+                    <th>Submitted</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-pending-tbody"></tbody>
+              </table>
+            </div>
+            <!-- Activity feed -->
+            <div class="card">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  margin-bottom: 16px;
+                "
+              >
+                <h3
+                  style="font-size: 14px; font-weight: 700; color: var(--g900)"
+                >
+                  Recent Activity
+                </h3>
+                <button class="btn btn-outline btn-sm" onclick="nav('system')">
+                  Full log
+                </button>
+              </div>
+              <div id="activity-feed"></div>
+            </div>
+          </div>
+
+          <!-- Active needs table -->
+          <div class="table-wrap" style="margin-top: 20px">
+            <div class="table-hd">
+              <div>
+                <h3>Active Needs — Priority Order</h3>
+                <p>Sorted by priority score, highest first</p>
+              </div>
+              <button
+                class="btn btn-outline btn-sm"
+                onclick="
+                  nav('needs');
+                  setSubTab('needs', 'active');
+                "
+              >
+                View all
+              </button>
+            </div>
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Score</th>
+                  <th>Need</th>
+                  <th>Facility</th>
+                  <th>Category</th>
+                  <th>Urgency</th>
+                  <th>Status</th>
+                  <th>Age</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="dash-needs-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- /dashboard -->
+
+        <!-- ═══════ FACILITIES ═══════ -->
+        <div id="view-facilities" class="view">
+          <div class="page-hd">
+            <div>
+              <h1>Facilities</h1>
+              <p>Verify, review, and manage all registered orphanages.</p>
+            </div>
+            <div class="hd-actions">
+              <button
+                class="btn btn-primary btn-sm"
+                onclick="openFacilityRegistrationModal()"
+              >
+                Register Facility
+              </button>
+            </div>
+          </div>
+          <div class="tab-strip">
+            <button
+              class="active"
+              data-subtab="pending"
+              onclick="setSubTab('facilities', 'pending')"
+            >
+              Pending Verification
+            </button>
+            <button
+              data-subtab="verified"
+              onclick="setSubTab('facilities', 'verified')"
+            >
+              Verified
+            </button>
+            <button
+              data-subtab="flagged"
+              onclick="setSubTab('facilities', 'flagged')"
+            >
+              Suspended
+            </button>
+          </div>
+
+          <div id="facilities-sub-pending" class="subview active">
+            <div class="filter-bar">
+              <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search name or email…"
+                  oninput="filterTable('pending-tbl', this.value)"
+                />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl" id="pending-tbl">
+                <thead>
+                  <tr>
+                    <th>Facility</th>
+                    <th>Location</th>
+                    <th>Children</th>
+                    <th>Reg. No.</th>
+                    <th>Submitted</th>
+                    <th>Field Agent</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="pending-tbl-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="facilities-sub-verified" class="subview">
+            <div class="filter-bar">
+              <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search…"
+                  oninput="filterTable('verified-tbl', this.value)"
+                />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl" id="verified-tbl">
+                <thead>
+                  <tr>
+                    <th>Facility</th>
+                    <th>Location</th>
+                    <th>Children</th>
+                    <th>Needs Posted</th>
+                    <th>Fulfillment Rate</th>
+                    <th>Last Active</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="verified-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="facilities-sub-flagged" class="subview">
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Facility</th>
+                    <th>Reason</th>
+                    <th>By</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="flagged-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- /facilities -->
+
+        <!-- ═══════ NEEDS ═══════ -->
+        <div id="view-needs" class="view">
+          <div class="page-hd">
+            <div>
+              <h1>Needs</h1>
+              <p>
+                Monitor, escalate, and close care requests from verified
+                facilities.
+              </p>
+            </div>
+          </div>
+          <div class="tab-strip">
+            <button
+              class="active"
+              data-subtab="active"
+              onclick="setSubTab('needs', 'active')"
+            >
+              Active Needs
+            </button>
+            <button
+              data-subtab="unmatched"
+              onclick="setSubTab('needs', 'unmatched')"
+            >
+              Unmatched &gt;24h
+            </button>
+            <button
+              data-subtab="fulfilled"
+              onclick="setSubTab('needs', 'fulfilled')"
+            >
+              Fulfilled
+            </button>
+            <button
+              data-subtab="duplicates"
+              onclick="setSubTab('needs', 'duplicates')"
+            >
+              Duplicate Flags
+            </button>
+          </div>
+
+          <div id="needs-sub-active" class="subview active">
+            <div class="filter-bar">
+              <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input
+                  id="needs-search"
+                  type="text"
+                  placeholder="Search needs…"
+                  oninput="applyNeedFilters()"
+                />
+              </div>
+              <select id="needs-cat-filter" onchange="applyNeedFilters()">
+                <option value="All">All Categories</option>
+                <option value="food">Food</option>
+                <option value="medical">Medical</option>
+                <option value="education">Education</option>
+                <option value="shelter">Shelter</option>
+                <option value="clothing">Clothing</option>
+              </select>
+              <select id="needs-urg-filter" onchange="applyNeedFilters()">
+                <option value="All">All Urgency</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <select id="needs-status-filter" onchange="renderActiveNeeds()">
+                <option value="All">All Status</option>
+                <option value="active">Active</option>
+                <option value="matched">Matched</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl" id="active-needs-tbl">
+                <thead>
+                  <tr>
+                    <th>Score</th>
+                    <th>Need</th>
+                    <th>Facility</th>
+                    <th>Category</th>
+                    <th>Urgency</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Age</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="active-needs-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="needs-sub-unmatched" class="subview">
+            <div class="alert-banner ab-red">
+              <span class="ab-icon">⚠</span>
+              <div>
+                <strong
+                  >These needs have been unmatched for over 24 hours.</strong
+                >
+                The matching engine has re-broadcast once. Consider manual
+                outreach.
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Score</th>
+                    <th>Need</th>
+                    <th>Facility</th>
+                    <th>Category</th>
+                    <th>Urgency</th>
+                    <th>Unmatched For</th>
+                    <th>Broadcasts</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="unmatched-tbody">
+                  <tr>
+                    <td><div class="score-ring score-high">87</div></td>
+                    <td>
+                      <div class="need-name">Medical Supplies</div>
+                      <div class="need-facility">₦85,000 · 22 children</div>
+                    </td>
+                    <td>Little Angels Care · Lagos</td>
+                    <td><span class="badge b-red">Medical</span></td>
+                    <td><span class="badge b-red">Critical</span></td>
+                    <td>
+                      <span class="mono" style="color: var(--red)">31h</span>
+                    </td>
+                    <td>2×</td>
+                    <td>
+                      <div class="tbl-actions">
+                        <button
+                          class="btn btn-primary btn-sm"
+                          onclick="
+                            showToast(
+                              'Ops team notified for manual outreach.',
+                              'warning',
+                            )
+                          "
+                        >
+                          Manual Escalate
+                        </button>
+                        <button
+                          class="btn btn-outline btn-sm"
+                          onclick="
+                            showToast('Re-broadcast sent to wider donor pool.')
+                          "
+                        >
+                          Re-broadcast
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><div class="score-ring score-high">72</div></td>
+                    <td>
+                      <div class="need-name">Food Supplies</div>
+                      <div class="need-facility">₦150,000 · 32 children</div>
+                    </td>
+                    <td>Hope Children's Home · Lagos</td>
+                    <td><span class="badge b-amber">Food</span></td>
+                    <td><span class="badge b-orange">High</span></td>
+                    <td>
+                      <span class="mono" style="color: var(--orange)">26h</span>
+                    </td>
+                    <td>1×</td>
+                    <td>
+                      <div class="tbl-actions">
+                        <button
+                          class="btn btn-primary btn-sm"
+                          onclick="showToast('Ops team notified.', 'warning')"
+                        >
+                          Manual Escalate
+                        </button>
+                        <button
+                          class="btn btn-outline btn-sm"
+                          onclick="showToast('Re-broadcast sent.')"
+                        >
+                          Re-broadcast
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="needs-sub-fulfilled" class="subview">
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Need</th>
+                    <th>Facility</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Donor</th>
+                    <th>Date</th>
+                    <th>Proof &amp; Verify</th>
+                  </tr>
+                </thead>
+                <tbody id="fulfilled-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="needs-sub-duplicates" class="subview">
+            <div class="alert-banner ab-amber">
+              <span class="ab-icon">⚠</span>
+              <div>
+                Duplicate-flagged needs have had priority scores reduced by 30
+                points pending review.
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Flagged Need</th>
+                    <th>Matched Against</th>
+                    <th>Facility</th>
+                    <th>Similarity</th>
+                    <th>Auto-Action</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="duplicates-tbody">
+                  <tr>
+                    <td>
+                      <div class="need-name">Food Supplies (May 20)</div>
+                      <div class="need-facility">Score −30</div>
+                    </td>
+                    <td>
+                      <div class="need-name">Food Supplies (May 19)</div>
+                      <div class="need-facility">Still active</div>
+                    </td>
+                    <td>Hope Children's Home</td>
+                    <td><span class="badge b-red">Same cat · 22h gap</span></td>
+                    <td>Score −30</td>
+                    <td>
+                      <div class="tbl-actions">
+                        <button
+                          class="btn btn-danger btn-sm"
+                          onclick="
+                            showToast(
+                              'Duplicate confirmed — need removed.',
+                              'warning',
+                            )
+                          "
+                        >
+                          Confirm &amp; Remove
+                        </button>
+                        <button
+                          class="btn btn-success btn-sm"
+                          onclick="showToast('Flag cleared — score restored.')"
+                        >
+                          Clear Flag
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- /needs -->
+
+        <!-- ═══════ DONORS ═══════ -->
+        <div id="view-donors" class="view">
+          <div class="page-hd">
+            <div>
+              <h1>Donors</h1>
+              <p>All individual and organisation donors on the platform.</p>
+            </div>
+            <div class="hd-actions">
+              <button
+                class="btn btn-primary btn-sm"
+                onclick="openDonationModal()"
+              >
+                New Donation
+              </button>
+            </div>
+          </div>
+          <div class="tab-strip">
+            <button
+              class="active"
+              data-subtab="individual"
+              onclick="setSubTab('donors', 'individual')"
+            >
+              Individual Donors
+            </button>
+            <button
+              data-subtab="organisation"
+              onclick="setSubTab('donors', 'organisation')"
+            >
+              Organisation Donors
+            </button>
+          </div>
+
+          <div id="donors-sub-individual" class="subview active">
+            <div class="filter-bar">
+              <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search donor name or email…"
+                  oninput="filterTable('donors-tbl', this.value)"
+                />
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl" id="donors-tbl">
+                <thead>
+                  <tr>
+                    <th>Donor</th>
+                    <th>Type</th>
+                    <th>Total Donated</th>
+                    <th>Donations</th>
+                    <th>Last Active</th>
+                    <th>Streak</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="donors-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="donors-sub-organisation" class="subview">
+            <div style="margin-bottom: 20px">
+              <button
+                class="btn btn-primary btn-sm"
+                onclick="showToast('Org onboarding — post-pilot.', 'warning')"
+              >
+                + Onboard New Org
+              </button>
+            </div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-hdr">
+                  <div class="org-avatar">G</div>
+                  <div>
+                    <h3>GTBank Foundation</h3>
+                    <p style="font-size: 12px; color: var(--g500)">
+                      Active since March 2026
+                    </p>
+                  </div>
+                  <span class="badge b-green" style="margin-left: auto"
+                    >Active</span
+                  >
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Annual Budget</span
+                  ><span class="detail-val">₦5,000,000</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Spent to Date</span
+                  ><span class="detail-val">₦4,200,000</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Needs Funded</span
+                  ><span class="detail-val">38</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Categories</span
+                  ><span class="detail-val">Food, Medical, Education</span>
+                </div>
+                <div class="detail-row" style="border: none">
+                  <span class="detail-label">Budget Used</span
+                  ><span class="detail-val">84%</span>
+                </div>
+                <div class="progress-bar" style="margin-top: 8px">
+                  <div
+                    class="progress-fill"
+                    style="width: 84%; background: var(--teal)"
+                  ></div>
+                </div>
+                <div class="card-actions">
+                  <button
+                    class="btn btn-primary btn-sm"
+                    onclick="showToast('Org portal — post-pilot.', 'warning')"
+                  >
+                    View Portal
+                  </button>
+                  <button
+                    class="btn btn-outline btn-sm"
+                    onclick="showToast('ESG report queued.', 'warning')"
+                  >
+                    Generate ESG
+                  </button>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-hdr">
+                  <div class="org-avatar">U</div>
+                  <div>
+                    <h3>UNICEF Nigeria Pilot</h3>
+                    <p style="font-size: 12px; color: var(--g500)">
+                      Active since April 2026
+                    </p>
+                  </div>
+                  <span class="badge b-green" style="margin-left: auto"
+                    >Active</span
+                  >
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Annual Budget</span
+                  ><span class="detail-val">₦12,000,000</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Spent to Date</span
+                  ><span class="detail-val">₦2,800,000</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Needs Funded</span
+                  ><span class="detail-val">12</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Categories</span
+                  ><span class="detail-val">Medical, Shelter, Education</span>
+                </div>
+                <div class="detail-row" style="border: none">
+                  <span class="detail-label">Budget Used</span
+                  ><span class="detail-val">23%</span>
+                </div>
+                <div class="progress-bar" style="margin-top: 8px">
+                  <div
+                    class="progress-fill"
+                    style="width: 23%; background: var(--purple)"
+                  ></div>
+                </div>
+                <div class="card-actions">
+                  <button
+                    class="btn btn-primary btn-sm"
+                    onclick="showToast('Org portal — post-pilot.', 'warning')"
+                  >
+                    View Portal
+                  </button>
+                  <button
+                    class="btn btn-outline btn-sm"
+                    onclick="showToast('ESG report queued.', 'warning')"
+                  >
+                    Generate ESG
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- /donors -->
+
+        <!-- ═══════ FINANCE ═══════ -->
+        <div id="view-finance" class="view">
+          <div class="page-hd">
+            <div>
+              <h1>Finance</h1>
+              <p>
+                Transaction ledger, platform revenue, and settlement status.
+              </p>
+            </div>
+          </div>
+          <div class="tab-strip">
+            <button
+              class="active"
+              data-subtab="transactions"
+              onclick="setSubTab('finance', 'transactions')"
+            >
+              Transactions
+            </button>
+            <button
+              data-subtab="revenue"
+              onclick="setSubTab('finance', 'revenue')"
+            >
+              Revenue Summary
+            </button>
+          </div>
+
+          <div id="finance-sub-transactions" class="subview active">
+            <div class="grid-3" style="margin-bottom: 20px">
+              <div class="stat-card" style="--accent: var(--green)">
+                <div class="stat-label">Total Processed</div>
+                <div class="stat-val" id="fin-total">—</div>
+                <div class="stat-sub">Pilot to date</div>
+              </div>
+              <div class="stat-card" style="--accent: var(--teal)">
+                <div class="stat-label">Platform Revenue</div>
+                <div class="stat-val" id="fin-fees">—</div>
+                <div class="stat-sub">1.5% fee</div>
+              </div>
+              <div class="stat-card" style="--accent: var(--blue)">
+                <div class="stat-label">Avg. Donation</div>
+                <div class="stat-val" id="fin-avg">—</div>
+                <div class="stat-sub" id="fin-avg-sub">Sign in to view</div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Ref</th>
+                    <th>Donor</th>
+                    <th>Facility</th>
+                    <th>Amount</th>
+                    <th>Fee</th>
+                    <th>To Facility</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="txn-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="finance-sub-revenue" class="subview">
+            <div class="grid-3" style="margin-bottom: 20px">
+              <div class="stat-card" style="--accent: var(--green)">
+                <div class="stat-label">Fee Income</div>
+                <div class="stat-val" id="rev-fees">—</div>
+                <div class="stat-sub">1.5% of volume</div>
+              </div>
+              <div class="stat-card" style="--accent: var(--purple)">
+                <div class="stat-label">Net to Facilities</div>
+                <div class="stat-val" id="rev-net">—</div>
+                <div class="stat-sub">After platform fee</div>
+              </div>
+              <div class="stat-card" style="--accent: var(--amber)">
+                <div class="stat-label">Pending Settlements</div>
+                <div class="stat-val" id="rev-pending">—</div>
+                <div class="stat-sub" id="rev-pending-sub">—</div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Tag</th>
+                    <th>Note</th>
+                  </tr>
+                </thead>
+                <tbody id="revenue-tbody">
+                  <tr>
+                    <td
+                      colspan="4"
+                      style="
+                        padding: 28px;
+                        text-align: center;
+                        color: var(--g400);
+                      "
+                    >
+                      Sign in to view revenue breakdown.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- /finance -->
+
+        <!-- ═══════ SYSTEM ═══════ -->
+        <div id="view-system" class="view">
+          <div class="page-hd">
+            <div>
+              <h1>System</h1>
+              <p>Activity log, notification delivery, and platform health.</p>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="exportLog()">
+              Export Log
+            </button>
+          </div>
+          <div class="tab-strip">
+            <button
+              class="active"
+              data-subtab="activity"
+              onclick="setSubTab('system', 'activity')"
+            >
+              Activity Log
+            </button>
+            <button
+              data-subtab="notifications"
+              onclick="setSubTab('system', 'notifications')"
+            >
+              Notifications
+            </button>
+          </div>
+
+          <div id="system-sub-activity" class="subview active">
+            <div class="filter-bar" style="margin-bottom: 16px">
+              <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search log…"
+                  oninput="filterActivityLog(this.value)"
+                />
+              </div>
+            </div>
+            <div class="card">
+              <div id="full-activity-log">
+                <div
+                  style="padding: 24px; text-align: center; color: var(--g400)"
+                >
+                  Loading activity…
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="system-sub-notifications" class="subview">
+            <div class="alert-banner ab-teal">
+              <span class="ab-icon">ℹ</span>
+              <div>
+                Notification logs are not yet exposed via the v1 API. This view
+                will show live data once the
+                <code style="font-family: monospace; font-size: 11px"
+                  >/notifications</code
+                >
+                endpoint is available.
+              </div>
+            </div>
+            <div class="grid-3" style="margin-bottom: 20px">
+              <div class="stat-card" style="--accent: var(--green)">
+                <div class="stat-label">WhatsApp</div>
+                <div class="stat-val">—</div>
+                <div class="stat-sub">Primary channel</div>
+              </div>
+              <div class="stat-card" style="--accent: var(--amber)">
+                <div class="stat-label">Email</div>
+                <div class="stat-val">—</div>
+                <div class="stat-sub">Secondary channel</div>
+              </div>
+              <div class="stat-card" style="--accent: var(--blue)">
+                <div class="stat-label">SMS Fallback</div>
+                <div class="stat-val">—</div>
+                <div class="stat-sub">Deep-rural fallback</div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th>Recipient</th>
+                    <th>Type</th>
+                    <th>Channel</th>
+                    <th>Template</th>
+                    <th>Status</th>
+                    <th>Sent At</th>
+                  </tr>
+                </thead>
+                <tbody id="notif-tbody">
+                  <tr>
+                    <td
+                      colspan="6"
+                      style="
+                        padding: 28px;
+                        text-align: center;
+                        color: var(--g400);
+                      "
+                    >
+                      Notification log — available post-v1 API update.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <!-- /system -->
+      </div>
+      <!-- /main -->
+    </div>
+    <!-- /shell -->
+
+    <!-- ══ AUTH MODAL ══ -->
+    <div
+      class="modal-overlay"
+      id="auth-modal"
+      onclick="if (event.target === this) closeAuthModal();"
+    >
+      <div class="modal" id="auth-modal-box">
+        <h2 id="auth-modal-title">Admin Sign In</h2>
+        <p id="auth-modal-desc">
+          Sign in to access facility actions, donations data, and fulfillment
+          verification.
+        </p>
+        <div class="form-group" id="auth-full-name-wrap" style="display: none">
+          <label class="form-label">Full Name</label>
+          <input
+            id="auth-full-name"
+            class="form-input"
+            type="text"
+            autocomplete="name"
+            placeholder="Enter your full name"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input
+            id="auth-email"
+            class="form-input"
+            type="email"
+            autocomplete="username"
+            placeholder="Enter email"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input
+            id="auth-password"
+            class="form-input"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Enter password"
+          />
+        </div>
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+          "
+        >
+          <!-- <button
+            type="button"
+            class="btn btn-outline"
+            id="auth-mode-toggle"
+            onclick="switchAuthMode()"
+          >
+            Need an account? Sign up
+          </button> -->
+          <div style="display: flex; gap: 10px">
+            <button class="btn btn-outline" onclick="closeAuthModal()">
+              Cancel
+            </button>
+            <button class="btn btn-primary" onclick="submitAuthLogin()">
+              Sign in
+            </button>
+          </div>
+        </div>
+        <div id="auth-error"></div>
+      </div>
+    </div>
+
+    <!-- ══ FACILITY REGISTRATION MODAL ══ -->
+    <div
+      class="modal-overlay"
+      id="facility-registration-modal"
+      onclick="if (event.target === this) closeFacilityRegistrationModal();"
+    >
+      <div class="modal">
+        <h2>Register Facility</h2>
+        <p>Submit a new orphanage registration for admin verification.</p>
+        <div class="form-group">
+          <label class="form-label">Facility Name</label>
+          <input
+            id="facility-reg-name"
+            class="form-input"
+            type="text"
+            placeholder="Facility name"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">City</label>
+          <input
+            id="facility-reg-city"
+            class="form-input"
+            type="text"
+            placeholder="City"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Country</label>
+          <input
+            id="facility-reg-country"
+            class="form-input"
+            type="text"
+            placeholder="Country"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact Email</label>
+          <input
+            id="facility-reg-email"
+            class="form-input"
+            type="email"
+            placeholder="contact@email.com"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact Phone</label>
+          <input
+            id="facility-reg-phone"
+            class="form-input"
+            type="text"
+            placeholder="Phone number"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea
+            id="facility-reg-description"
+            class="form-input"
+            placeholder="Describe the facility and services"
+          ></textarea>
+        </div>
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 4px;
+          "
+        >
+          <button
+            class="btn btn-outline"
+            onclick="closeFacilityRegistrationModal()"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="submitFacilityRegistration()"
+          >
+            Submit Registration
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DONATION MODAL ══ -->
+    <div
+      class="modal-overlay"
+      id="donation-modal"
+      onclick="if (event.target === this) closeDonationModal();"
+    >
+      <div class="modal">
+        <h2>New Donation</h2>
+        <p>Create a donation against an open need.</p>
+        <div class="form-group">
+          <label class="form-label">Need</label>
+          <select id="donation-need-id" class="form-input"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount</label>
+          <input
+            id="donation-amount"
+            class="form-input"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="Enter amount"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Method</label>
+          <select id="donation-payment-method" class="form-input">
+            <option value="card">Card</option>
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="cash">Cash</option>
+          </select>
+        </div>
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 4px;
+          "
+        >
+          <button class="btn btn-outline" onclick="closeDonationModal()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="submitDonation()">
+            Submit Donation
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ FACILITY DRAWER ══ -->
+    <div
+      class="drawer-overlay"
+      id="facility-drawer"
+      onclick="if (event.target === this) closeDrawer();"
+    >
+      <div class="drawer">
+        <div class="drawer-hd">
+          <h2 id="drawer-title">Facility Review</h2>
+          <div class="drawer-close" onclick="closeDrawer()">✕</div>
+        </div>
+        <div class="drawer-body" id="drawer-body"></div>
+      </div>
+    </div>
+
+    <!-- ══ FLAG / SUSPEND MODAL ══ -->
+    <div
+      class="modal-overlay"
+      id="flag-modal"
+      onclick="if (event.target === this) closeFlagModal();"
+    >
+      <div class="modal">
+        <h2>Suspend Facility</h2>
+        <p>
+          This facility will be hidden from the donor dashboard and flagged for
+          operations review.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Facility</label>
+          <input class="form-input" id="flag-facility-name" readonly />
+          <input type="hidden" id="flag-facility-id" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason</label>
+          <select class="form-input" id="flag-reason">
+            <option>Missing registration documents</option>
+            <option>Suspicious activity detected</option>
+            <option>Fulfillment rate below 50%</option>
+            <option>Failed field verification</option>
+            <option>Duplicate registration suspected</option>
+            <option>Other — see notes</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes (optional)</label>
+          <textarea
+            class="form-input"
+            id="flag-notes"
+            placeholder="Add context for the operations team…"
+          ></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-outline" onclick="closeFlagModal()">
+            Cancel
+          </button>
+          <button class="btn btn-danger" onclick="submitFlag()">
+            Suspend Facility
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TOAST ══ -->
+    <div
+      id="toast"
+      style="
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: var(--g900);
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        transform: translateY(100px);
+        transition: transform 0.25s;
+        z-index: 999;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: var(--sh-md);
+        max-width: 380px;
+      "
+    ></div>
+
+    <script src="carebridge-admin.js"></script>
+  </body>
+</html>
