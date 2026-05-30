@@ -1,18 +1,6 @@
 /**
- * Matching Engine Proxy Route
- *
- * The data science team's engine (https://github.com/Gracey244/CAREBRIDGE-OVC-V1)
- * is not yet deployed. This file does two things:
- *
- * 1. When engine IS deployed: calls it via HTTP and stores the results
- * 2. Right now (pre-deployment): runs a simple fallback scoring algorithm
- *    so the feature already works end-to-end before they deploy
- *
- * When the DS team deploys their engine, just set ENGINE_URL in .env
- * and the proxy will automatically switch over.
- *
- * Integration point — call this after creating a new need:
- *   const matches = await runMatchingEngine(need_id);
+ * Matching Engine — integrated with DS team's live engine
+ * Base URL: https://carebridge-ovc-v1.onrender.com
  */
 
 const router = require('express').Router();
@@ -20,100 +8,17 @@ const https = require('https');
 const { pool } = require('../config/db');
 const { authenticate, authorise } = require('../middleware/auth');
 
-const ENGINE_URL = process.env.MATCHING_ENGINE_URL; // set when DS team deploys
+const ENGINE_BASE = process.env.MATCHING_ENGINE_URL || 'https://carebridge-ovc-v1.onrender.com';
 
-// ─── Fallback in-process matching (used until DS engine is deployed) ──────────
-function computePriorityScore(need) {
-  let score = 0;
-  if (need.urgency === 'critical') score += 30;
-  else if (need.urgency === 'high') score += 20;
-  else if (need.urgency === 'medium') score += 10;
-
-  const hoursSince = Math.floor(
-    (Date.now() - new Date(need.created_at).getTime()) / 36e5
-  );
-  score += Math.min(hoursSince * 0.5, 15); // age bonus, max 15
-
-  if (need.category === 'medical') score += 5;
-
-  return Math.round(score);
-}
-
-function computeRankScore(donor) {
-  let score = 0;
-  score += Math.min(donor.donation_count * 2, 20); // experience
-  if (donor.last_donation_days > 30) score += 10; // not recently overused
-  score += Math.random() * 5; // tie-breaking
-  return Math.max(0, Math.round(score)); // never negative
-}
-
-async function fallbackMatchingEngine(need_id) {
-  // Fetch the need
-  const needRes = await pool.query(
-    `SELECT n.*, f.country, f.city FROM needs n
-     JOIN facilities f ON n.facility_id = f.id
-     WHERE n.id = $1`,
-    [need_id]
-  );
-  const need = needRes.rows[0];
-  if (!need) return null;
-
-  const priority_score = computePriorityScore(need);
-
-  // Fetch potential donors (users with role=donor)
-  // In production, donors_df would come from a separate donors table
-  // For now we use the users table as a proxy
-  const donorRes = await pool.query(`
-    SELECT u.id AS donor_id, u.full_name AS donor_name, u.email,
-           COUNT(d.id) AS donation_count,
-           COALESCE(MAX(EXTRACT(DAY FROM NOW() - d.created_at)), 999) AS last_donation_days
-    FROM users u
-    LEFT JOIN donations d ON d.user_id = u.id AND d.status = 'confirmed'
-    WHERE u.role = 'donor'
-    GROUP BY u.id, u.full_name, u.email
-    LIMIT 20
-  `);
-
-  const donors = donorRes.rows;
-
-  // Fairness: exclude donors used more than 3 times this week
-  const busyRes = await pool.query(`
-    SELECT user_id, COUNT(*) as cnt
-    FROM donations
-    WHERE created_at > NOW() - INTERVAL '7 days'
-    GROUP BY user_id
-    HAVING COUNT(*) > 3
-  `);
-  const busyDonors = new Set(busyRes.rows.map((r) => r.user_id));
-
-  const ranked = donors
-    .filter((d) => !busyDonors.has(d.donor_id))
-    .map((d) => ({
-      donor_id: d.donor_id,
-      donor_name: d.donor_name,
-      rank_score: computeRankScore(d),
-    }))
-    .sort((a, b) => b.rank_score - a.rank_score)
-    .slice(0, 5);
-
-  return {
-    request_id: `N${need_id}`,
-    need_id,
-    priority_score,
-    matched_donors: ranked,
-    engine: 'fallback',
-  };
-}
-
-// ─── Call the real DS engine when deployed ────────────────────────────────────
-async function callExternalEngine(payload) {
+// ── Helper: call the DS engine ─────────────────────────────────────────────
+function enginePost(path, payload) {
   return new Promise((resolve, reject) => {
-    const url = new URL(ENGINE_URL);
     const body = JSON.stringify(payload);
+    const url = new URL(ENGINE_BASE);
     const options = {
       hostname: url.hostname,
-      port: url.port || 443,
-      path: url.pathname,
+      port: 443,
+      path,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -135,72 +40,195 @@ async function callExternalEngine(payload) {
   });
 }
 
-// Main function — called by other routes after creating a need
-async function runMatchingEngine(need_id) {
-  if (ENGINE_URL) {
-    try {
-      // Build the DataFrames the DS engine expects
-      const needsRes = await pool.query(`
-        SELECT n.id AS request_id, n.facility_id, n.category,
-               n.title AS need_type, n.urgency AS urgency_level,
-               f.city AS location, n.cash_equivalent,
-               n.status,
-               EXTRACT(EPOCH FROM (NOW() - n.created_at))/3600 AS hours_since_posted,
-               0 AS facility_fulfilment_rate,
-               false AS is_duplicate
-        FROM needs n JOIN facilities f ON n.facility_id = f.id
-        WHERE n.status = 'open'
-      `);
+// ── Build the payload the DS engine expects from our DB ───────────────────
+async function buildEnginePayload() {
+  const needsRes = await pool.query(`
+    SELECT
+      n.id::text            AS request_id,
+      n.facility_id::text   AS facility_id,
+      n.category,
+      n.urgency             AS urgency_level,
+      n.status,
+      ROUND(EXTRACT(EPOCH FROM (NOW() - n.created_at))/3600)::int AS hours_since_posted,
+      false                 AS is_duplicate,
+      0.6                   AS fulfillment_rate
+    FROM needs n
+    WHERE n.status = 'open'
+  `);
 
-      const donorsRes = await pool.query(`
-        SELECT u.id AS donor_id, u.full_name AS donor_name,
-               'general' AS preferred_category, 'any' AS preferred_type,
-               'Nigeria' AS location,
-               0 AS budget,
-               COUNT(d.id) AS donation_count,
-               COALESCE(MAX(EXTRACT(DAY FROM NOW() - d.created_at)), 999) AS last_donation_days
-        FROM users u
-        LEFT JOIN donations d ON d.user_id = u.id
-        WHERE u.role = 'donor'
-        GROUP BY u.id, u.full_name
-      `);
+  const donorsRes = await pool.query(`
+    SELECT
+      u.id::text            AS donor_id,
+      'General'             AS preferred_category,
+      'Either'              AS need_type,
+      'Nigeria'             AS location,
+      COUNT(d.id)::int      AS total_donations,
+      COALESCE(
+        MAX(EXTRACT(DAY FROM NOW() - d.created_at)::int), 999
+      )                     AS last_donation_days_ago
+    FROM users u
+    LEFT JOIN donations d ON d.user_id = u.id AND d.status = 'confirmed'
+    WHERE u.role = 'donor'
+    GROUP BY u.id
+  `);
 
-      const donationsRes = await pool.query(`
-        SELECT id AS donation_id, user_id AS donor_id,
-               need_id AS request_id, status
-        FROM donations
-        WHERE status IN ('pending', 'confirmed')
-      `);
+  const donationsRes = await pool.query(`
+    SELECT
+      id::text              AS donation_id,
+      user_id::text         AS donor_id,
+      need_id::text         AS request_id,
+      status
+    FROM donations
+    WHERE status IN ('pending', 'confirmed')
+  `);
 
-      const result = await callExternalEngine({
-        requests: needsRes.rows,
-        donors: donorsRes.rows,
-        donations: donationsRes.rows,
-      });
-
-      // Find the specific need's match in the response array
-      if (Array.isArray(result)) {
-        return result.find((r) => String(r.request_id) === String(need_id)) || null;
-      }
-      return result;
-    } catch (err) {
-      console.warn('External engine failed, using fallback:', err.message);
-      return fallbackMatchingEngine(need_id);
-    }
-  }
-
-  return fallbackMatchingEngine(need_id);
+  return {
+    requests:  needsRes.rows,
+    donors:    donorsRes.rows,
+    donations: donationsRes.rows,
+  };
 }
 
-// ─── API Routes ───────────────────────────────────────────────────────────────
+// ── Main function called by needs.js after creating a need ────────────────
+async function runMatchingEngine(need_id) {
+  try {
+    const payload = await buildEnginePayload();
 
-// POST /api/matching/run/:need_id — admin or facility triggers matching manually
+    if (!payload.requests.length) return null;
+
+    // Use single-request endpoint if we have a specific need_id
+    const response = await enginePost(
+      `/match/single-request?request_id=${need_id}`,
+      payload
+    );
+
+    if (response.status === 'no_matches') {
+      return { need_id, priority_score: 0, matched_donors: [], engine: 'external' };
+    }
+
+    return {
+      need_id,
+      request_id: response.request_id,
+      priority_score: response.priority_score,
+      matched_donors: response.matched_donors,
+      engine: 'external',
+    };
+  } catch (err) {
+    console.warn('DS engine error, using fallback:', err.message);
+    return fallbackMatchingEngine(need_id);
+  }
+}
+
+// ── Fallback (only used if DS engine is down) ─────────────────────────────
+function computePriorityScore(need) {
+  let score = 0;
+  if (need.urgency === 'critical') score += 30;
+  else if (need.urgency === 'high') score += 20;
+  else if (need.urgency === 'medium') score += 10;
+  const hoursSince = Math.floor((Date.now() - new Date(need.created_at).getTime()) / 36e5);
+  score += Math.min(hoursSince * 0.5, 15);
+  if (need.category === 'medical') score += 5;
+  return Math.round(score);
+}
+
+async function fallbackMatchingEngine(need_id) {
+  const needRes = await pool.query(
+    'SELECT * FROM needs WHERE id = $1', [need_id]
+  );
+  const need = needRes.rows[0];
+  if (!need) return null;
+
+  return {
+    need_id,
+    priority_score: computePriorityScore(need),
+    matched_donors: [],
+    engine: 'fallback',
+  };
+}
+
+// ── API Routes ────────────────────────────────────────────────────────────
+
+// GET /api/matching/health — check if DS engine is alive
+router.get('/health', async (req, res) => {
+  try {
+    const url = new URL(ENGINE_BASE);
+    const response = await new Promise((resolve, reject) => {
+      const req = https.request(
+        { hostname: url.hostname, port: 443, path: '/health', method: 'GET' },
+        (r) => {
+          let data = '';
+          r.on('data', (c) => (data += c));
+          r.on('end', () => resolve(JSON.parse(data)));
+        }
+      );
+      req.on('error', reject);
+      req.end();
+    });
+    res.json({ engine_status: response.status, engine_url: ENGINE_BASE });
+  } catch (err) {
+    res.json({ engine_status: 'unreachable', fallback: 'active', error: err.message });
+  }
+});
+
+// GET /api/matching/priority — all needs ranked by priority
+router.get('/priority', async (req, res) => {
+  try {
+    const payload = await buildEnginePayload();
+
+    let rankedIds = [];
+
+    if (payload.requests.length) {
+      const response = await enginePost('/match', payload).catch(() => null);
+      if (response && response.status === 'success') {
+        // results are already sorted by priority_score descending
+        rankedIds = response.results.map((r) => ({
+          id: r.request_id,
+          priority_score: r.priority_score,
+        }));
+
+        // Save priority scores back to DB
+        for (const r of rankedIds) {
+          await pool.query(
+            'UPDATE needs SET priority_score = $1 WHERE id = $2',
+            [r.priority_score, r.id]
+          ).catch(() => {});
+        }
+      }
+    }
+
+    // Return full need details sorted by priority
+    const result = await pool.query(`
+      SELECT n.*, f.name AS facility_name, f.city, f.country,
+             COALESCE(n.priority_score, 0) AS priority_score
+      FROM needs n
+      JOIN facilities f ON n.facility_id = f.id
+      WHERE n.status = 'open' AND f.status = 'verified'
+      ORDER BY priority_score DESC, n.created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/matching/stats — DS engine stats dashboard
+router.get('/stats', authenticate, authorise('admin'), async (req, res) => {
+  try {
+    const payload = await buildEnginePayload();
+    const response = await enginePost('/stats', payload);
+    res.json(response);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/matching/run/:need_id — manually re-run matching for a need
 router.post('/run/:need_id', authenticate, authorise('admin', 'facility'), async (req, res) => {
   try {
     const result = await runMatchingEngine(req.params.need_id);
-    if (!result) return res.status(404).json({ error: 'Need not found' });
+    if (!result) return res.status(404).json({ error: 'Need not found or no active requests' });
 
-    // Store the priority score back on the need
     await pool.query(
       'UPDATE needs SET priority_score = $1 WHERE id = $2',
       [result.priority_score, req.params.need_id]
@@ -212,29 +240,12 @@ router.post('/run/:need_id', authenticate, authorise('admin', 'facility'), async
   }
 });
 
-// GET /api/matching/results/:need_id — get stored match results for a need
+// GET /api/matching/results/:need_id — get match result for one need
 router.get('/results/:need_id', authenticate, authorise('admin', 'facility'), async (req, res) => {
   try {
     const result = await runMatchingEngine(req.params.need_id);
     if (!result) return res.status(404).json({ error: 'Need not found or no matches' });
     res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/matching/priority — ranked list of all open needs by priority score
-router.get('/priority', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT n.*, f.name AS facility_name, f.city, f.country,
-             COALESCE(n.priority_score, 0) AS priority_score
-      FROM needs n
-      JOIN facilities f ON n.facility_id = f.id
-      WHERE n.status = 'open' AND f.status = 'verified'
-      ORDER BY priority_score DESC, n.created_at DESC
-    `);
-    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
