@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CareBridge OVC — All Needs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="needs.css" />
+  </head>
+  <body>
+    <!-- ═══════════════════════════════════════════
+     PAGE 2: NEEDS DASHBOARD
+═══════════════════════════════════════════ -->
+    <div id="page-dashboard" class="page active">
+      <nav class="nav">
+        <div
+          class="nav-logo"
+          style="cursor: pointer"
+          onclick="window.location.href = 'carebridge-ovc (1).html'"
+        >
+          Care<span>Bridge</span> OVC
+        </div>
+        <div class="nav-actions">
+          <button
+            class="btn-ghost btn"
+            onclick="window.location.href = 'carebridge-ovc (1).html'"
+          >
+            ← Home
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="
+              window.location.href = 'carebridge-ovc (1).html#page-whatsapp'
+            "
+          >
+            Register Home
+          </button>
+        </div>
+      </nav>
+      <div class="container">
+        <div class="dash-header">
+          <h1>Browse Live Needs</h1>
+          <p>
+            Support verified orphanages across Nigeria with direct, provable
+            impact.
+          </p>
+        </div>
+        <div class="filter-bar">
+          <input
+            type="text"
+            id="search-input"
+            placeholder="🔍  Search by facility or item..."
+            oninput="filterNeeds()"
+          />
+          <select id="cat-filter" onchange="filterNeeds()">
+            <option value="All">All Categories</option>
+            <option>Food</option>
+            <option>Medical</option>
+            <option>Education</option>
+            <option>Shelter</option>
+            <option>Clothing</option>
+          </select>
+          <select id="urg-filter" onchange="filterNeeds()">
+            <option value="All">All Urgency Levels</option>
+            <option value="critical">🔴 Critical</option>
+            <option value="high">🟠 High</option>
+            <option value="medium">🟡 Medium</option>
+          </select>
+          <div class="filter-count" id="filter-count"></div>
+        </div>
+        <div class="grid-3" id="needs-grid"></div>
+        <div class="empty-state" id="empty-state" style="display: none">
+          No needs match your filters. Try broadening your search.
+        </div>
+      </div>
+      <footer style="margin-top: 60px">&copy; 2026 CareBridge OVC</footer>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+     PAGE 3: NEED DETAIL + DONATION
+═══════════════════════════════════════════ -->
+    <div id="page-detail" class="page">
+      <nav class="nav">
+        <div
+          class="nav-logo"
+          style="cursor: pointer"
+          onclick="window.location.href = 'carebridge-ovc (1).html'"
+        >
+          Care<span>Bridge</span> OVC
+        </div>
+        <div class="nav-actions">
+          <button class="btn-ghost btn" onclick="showPage('page-dashboard')">
+            ← Back to Needs
+          </button>
+        </div>
+      </nav>
+      <div class="container">
+        <div class="detail-layout">
+          <div>
+            <div class="card">
+              <div class="detail-facility-header">
+                <div class="facility-avatar" id="detail-avatar">HC</div>
+                <div class="facility-name-block">
+                  <h2 id="detail-name">—</h2>
+                  <p id="detail-location">—</p>
+                </div>
+              </div>
+              <div class="detail-tags" id="detail-tags"></div>
+              <h3
+                id="detail-items-title"
+                style="
+                  font-size: 16px;
+                  font-weight: 700;
+                  color: var(--gray-900);
+                  margin-bottom: 8px;
+                "
+              ></h3>
+              <p
+                id="detail-desc"
+                style="
+                  font-size: 14px;
+                  color: var(--gray-500);
+                  line-height: 1.7;
+                "
+              ></p>
+
+              <div class="track-record">
+                <h4>Facility Track Record</h4>
+                <div class="track-stats">
+                  <div class="track-stat">
+                    <div class="track-stat-num">94%</div>
+                    <div class="track-stat-label">Fulfillment rate</div>
+                  </div>
+                  <div class="track-stat">
+                    <div class="track-stat-num">12</div>
+                    <div class="track-stat-label">Needs fulfilled</div>
+                  </div>
+                  <div class="track-stat">
+                    <div class="track-stat-num">28h</div>
+                    <div class="track-stat-label">Avg. response</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="donate-box">
+              <div class="tab-row">
+                <button
+                  class="tab-btn active"
+                  id="tab-fund"
+                  onclick="switchTab('fund')"
+                >
+                  💰 Fund This Need
+                </button>
+                <button
+                  class="tab-btn"
+                  id="tab-deliver"
+                  onclick="switchTab('deliver')"
+                >
+                  📦 I Will Deliver
+                </button>
+              </div>
+
+              <div id="fund-panel">
+                <div class="form-group">
+                  <div class="form-label">Choose amount</div>
+                  <div class="amount-grid" id="amount-grid"></div>
+                  <div style="position: relative">
+                    <span
+                      style="
+                        position: absolute;
+                        left: 12px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        color: var(--gray-400);
+                        font-weight: 600;
+                      "
+                      >₦</span
+                    >
+                    <input
+                      class="form-input"
+                      type="number"
+                      id="custom-amount"
+                      placeholder="Enter custom amount"
+                      style="padding-left: 28px"
+                      oninput="updateSummary()"
+                    />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Your email</label>
+                  <input
+                    class="form-input"
+                    type="email"
+                    id="donor-email"
+                    placeholder="you@example.com"
+                  />
+                  <div class="form-hint">
+                    We'll send your receipt and photo proof here — no account
+                    needed.
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <div class="form-label">Pay with</div>
+                  <div class="payment-method disabled">
+                    <span class="payment-name"
+                      >💳 Card
+                      <span class="payment-coming">(Coming soon)</span></span
+                    >
+                  </div>
+                  <div class="payment-method disabled">
+                    <span class="payment-name"
+                      >🏦 Bank Transfer
+                      <span class="payment-coming">(Coming soon)</span></span
+                    >
+                  </div>
+                  <div class="payment-method active">
+                    <span class="payment-name">📱 Mobile Money</span>
+                    <span
+                      style="
+                        width: 18px;
+                        height: 18px;
+                        background: var(--teal);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 11px;
+                        color: #fff;
+                      "
+                      >✓</span
+                    >
+                  </div>
+                </div>
+
+                <div class="summary-box">
+                  <div class="summary-row">
+                    <span>Goes to facility</span
+                    ><span id="sum-facility">₦0</span>
+                  </div>
+                  <div class="summary-row">
+                    <span>Platform fee (1.5%)</span><span id="sum-fee">₦0</span>
+                  </div>
+                  <div class="summary-row total">
+                    <span>You pay</span><span id="sum-donation">₦0</span>
+                  </div>
+                </div>
+                <p
+                  style="
+                    font-size: 11px;
+                    color: var(--gray-500);
+                    margin-bottom: 14px;
+                    line-height: 1.5;
+                  "
+                >
+                  100% of your intended donation reaches the facility. The
+                  platform fee is added on top.
+                </p>
+
+                <button
+                  class="btn btn-primary btn-full btn-lg"
+                  onclick="handleDonate()"
+                  id="donate-cta"
+                >
+                  Give Now →
+                </button>
+                <p
+                  style="
+                    font-size: 11px;
+                    color: var(--gray-400);
+                    text-align: center;
+                    margin-top: 10px;
+                  "
+                >
+                  Secured by Paystack · CBN licensed
+                </p>
+              </div>
+
+              <div id="deliver-panel" style="display: none">
+                <div id="deliver-step-1">
+                  <div
+                    style="
+                      background: var(--teal-bg);
+                      border: 1px solid #99f6e4;
+                      border-radius: 10px;
+                      padding: 14px;
+                      margin-bottom: 20px;
+                    "
+                  >
+                    <p
+                      style="
+                        font-size: 13px;
+                        color: var(--teal-dark);
+                        line-height: 1.6;
+                      "
+                    >
+                      <strong>Make a delivery commitment.</strong> Tell us who
+                      you are and we'll connect you directly with the facility
+                      coordinator via WhatsApp. The full address is shared by
+                      the facility — never publicly.
+                    </p>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Your full name</label>
+                    <input
+                      class="form-input"
+                      type="text"
+                      id="deliver-name"
+                      placeholder="e.g. Chidi Okafor"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Phone number</label>
+                    <input
+                      class="form-input"
+                      type="tel"
+                      id="deliver-phone"
+                      placeholder="+234 800 000 0000"
+                    />
+                    <div class="form-hint">
+                      The facility will reach you on this number via WhatsApp.
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Delivery area</label>
+                    <div
+                      style="
+                        padding: 11px 14px;
+                        background: var(--gray-50);
+                        border: 1.5px solid var(--gray-200);
+                        border-radius: 10px;
+                        font-size: 14px;
+                        color: var(--gray-600);
+                      "
+                      id="deliver-area-display"
+                    >
+                      —
+                    </div>
+                    <div class="form-hint">
+                      General area only. Full address shared after commitment.
+                    </div>
+                  </div>
+
+                  <div
+                    style="
+                      background: var(--gray-50);
+                      border-radius: 10px;
+                      padding: 14px;
+                      margin-bottom: 18px;
+                    "
+                  >
+                    <p
+                      style="
+                        font-size: 12px;
+                        color: var(--gray-500);
+                        line-height: 1.6;
+                      "
+                    >
+                      By committing, you agree to deliver within
+                      <strong>1–5 days</strong>. If you cannot follow through,
+                      please cancel within 24 hours so the need can be re-opened
+                      for other donors.
+                    </p>
+                  </div>
+
+                  <button
+                    class="btn btn-primary btn-full btn-lg"
+                    onclick="handleDeliverCommit()"
+                  >
+                    📦 Confirm My Commitment
+                  </button>
+                </div>
+
+                <div id="deliver-step-2" style="display: none">
+                  <div style="text-align: center; padding: 20px 0 16px">
+                    <div
+                      style="
+                        width: 60px;
+                        height: 60px;
+                        background: var(--teal-light);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0 auto 14px;
+                        font-size: 28px;
+                      "
+                    >
+                      📦
+                    </div>
+                    <h3
+                      style="
+                        font-size: 18px;
+                        font-weight: 800;
+                        color: var(--gray-900);
+                        margin-bottom: 6px;
+                      "
+                    >
+                      Commitment Recorded
+                    </h3>
+                    <p style="font-size: 14px; color: var(--gray-500)">
+                      The facility coordinator will reach you on WhatsApp within
+                      2 hours to share the delivery address and confirm timing.
+                    </p>
+                  </div>
+
+                  <div
+                    style="
+                      background: var(--teal-bg);
+                      border-radius: 12px;
+                      padding: 18px;
+                      margin: 20px 0;
+                    "
+                  >
+                    <div
+                      style="
+                        font-size: 11px;
+                        font-weight: 700;
+                        letter-spacing: 0.6px;
+                        text-transform: uppercase;
+                        color: var(--teal-dark);
+                        margin-bottom: 12px;
+                      "
+                    >
+                      What Happens Next
+                    </div>
+                    <div
+                      style="display: flex; flex-direction: column; gap: 10px"
+                    >
+                      <div
+                        style="
+                          display: flex;
+                          gap: 10px;
+                          align-items: flex-start;
+                        "
+                      >
+                        <span
+                          style="
+                            width: 22px;
+                            height: 22px;
+                            background: var(--teal);
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 11px;
+                            color: #fff;
+                            flex-shrink: 0;
+                          "
+                          >✓</span
+                        >
+                        <div>
+                          <div
+                            style="
+                              font-size: 13px;
+                              font-weight: 600;
+                              color: var(--gray-900);
+                            "
+                          >
+                            Just now
+                          </div>
+                          <div style="font-size: 12px; color: var(--gray-500)">
+                            Your commitment is logged
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          gap: 10px;
+                          align-items: flex-start;
+                        "
+                      >
+                        <span
+                          style="
+                            width: 22px;
+                            height: 22px;
+                            background: var(--teal);
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 11px;
+                            color: #fff;
+                            flex-shrink: 0;
+                          "
+                          >✓</span
+                        >
+                        <div>
+                          <div
+                            style="
+                              font-size: 13px;
+                              font-weight: 600;
+                              color: var(--gray-900);
+                            "
+                          >
+                            Within 2 hours
+                          </div>
+                          <div style="font-size: 12px; color: var(--gray-500)">
+                            Facility WhatsApps you with delivery address
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          gap: 10px;
+                          align-items: flex-start;
+                        "
+                      >
+                        <span
+                          style="
+                            width: 22px;
+                            height: 22px;
+                            border: 2px solid #99f6e4;
+                            border-radius: 50%;
+                            flex-shrink: 0;
+                          "
+                        ></span>
+                        <div>
+                          <div
+                            style="
+                              font-size: 13px;
+                              font-weight: 600;
+                              color: var(--gray-500);
+                            "
+                          >
+                            Within 3–5 days
+                          </div>
+                          <div style="font-size: 12px; color: var(--gray-500)">
+                            You deliver the items
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          gap: 10px;
+                          align-items: flex-start;
+                        "
+                      >
+                        <span
+                          style="
+                            width: 22px;
+                            height: 22px;
+                            border: 2px solid #99f6e4;
+                            border-radius: 50%;
+                            flex-shrink: 0;
+                          "
+                        ></span>
+                        <div>
+                          <div
+                            style="
+                              font-size: 13px;
+                              font-weight: 600;
+                              color: var(--gray-500);
+                            "
+                          >
+                            Within 48hrs of delivery
+                          </div>
+                          <div style="font-size: 12px; color: var(--gray-500)">
+                            Photo proof sent to your phone
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    class="btn btn-outline btn-full"
+                    style="margin-bottom: 10px"
+                    onclick="showPage('page-dashboard')"
+                  >
+                    Browse More Needs
+                  </button>
+                  <p
+                    style="
+                      font-size: 12px;
+                      color: var(--gray-400);
+                      text-align: center;
+                    "
+                  >
+                    Need to cancel? WhatsApp us at +234 800 CARE OVC
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+     PAGE 4: PROOF PAGE
+═══════════════════════════════════════════ -->
+    <div id="page-proof" class="page">
+      <nav class="nav">
+        <div
+          class="nav-logo"
+          style="cursor: pointer"
+          onclick="window.location.href = 'carebridge-ovc (1).html'"
+        >
+          Care<span>Bridge</span> OVC
+        </div>
+        <div class="nav-actions">
+          <button class="btn btn-primary" onclick="showPage('page-dashboard')">
+            Help More Children →
+          </button>
+        </div>
+      </nav>
+      <div class="proof-wrap">
+        <div class="proof-success-header">
+          <div class="proof-check">✓</div>
+          <div>
+            <h1>Donation Fulfilled!</h1>
+            <p>Your impact has been delivered and verified.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px">
+          <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 16px">
+            Donation Summary
+          </h2>
+          <div class="proof-grid">
+            <div class="proof-stat">
+              <div class="proof-stat-label">Orphanage</div>
+              <div class="proof-stat-val">Hope Children's Home</div>
+            </div>
+            <div class="proof-stat">
+              <div class="proof-stat-label">Donation Amount</div>
+              <div class="proof-stat-val">₦148,500</div>
+            </div>
+            <div class="proof-stat">
+              <div class="proof-stat-label">Children Impacted</div>
+              <div class="proof-stat-val">32 children</div>
+            </div>
+            <div class="proof-stat">
+              <div class="proof-stat-label">Fulfilled On</div>
+              <div class="proof-stat-val">May 14, 2026</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px">
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px">
+            Items Purchased
+          </h3>
+          <ul class="proof-items" style="list-style: none">
+            <li>Rice (50kg) — 2 bags</li>
+            <li>Cooking Oil (10L)</li>
+            <li>Beans (25kg)</li>
+          </ul>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px">
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 14px">
+            📸 Proof of Fulfillment
+          </h3>
+          <div class="proof-photo">
+            <div class="proof-photo-placeholder">
+              <div class="ph-icon">📦</div>
+              <p style="font-weight: 600">
+                Food supplies delivered to Hope Children's Home
+              </p>
+              <p
+                style="font-size: 12px; margin-top: 6px; color: var(--gray-400)"
+              >
+                Photo submitted by facility administrator · May 14, 2026
+              </p>
+            </div>
+          </div>
+          <p
+            style="
+              font-size: 12px;
+              color: var(--gray-400);
+              text-align: center;
+              margin-top: 8px;
+            "
+          >
+            Photo submitted by Hope Children's Home
+          </p>
+        </div>
+
+        <div class="message-box">
+          <h3>💬 Message from the Orphanage</h3>
+          <p>
+            "Thank you so much for your generous donation! Your contribution has
+            provided essential food supplies that will feed 32 children for the
+            next two weeks. The children are so grateful for your support and
+            kindness. God bless you."
+          </p>
+        </div>
+
+        <div
+          style="
+            text-align: center;
+            padding: 32px 0;
+            border-top: 1px solid var(--gray-200);
+            margin-top: 8px;
+          "
+        >
+          <p style="color: var(--gray-500); margin-bottom: 16px">
+            Want to keep making a difference?
+          </p>
+          <button
+            class="btn btn-primary btn-lg"
+            onclick="showPage('page-dashboard')"
+          >
+            Browse More Needs
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUCCESS MODAL -->
+    <div
+      class="modal-overlay"
+      id="modal"
+      onclick="if (event.target === this) closeModal();"
+    >
+      <div class="modal-box">
+        <div class="modal-icon">✅</div>
+        <h2>Your gift is on its way!</h2>
+        <p id="modal-msg">
+          Your donation is being transferred to the facility.
+        </p>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot"><span></span></div>
+            <div>
+              <div class="tl-time">Just now</div>
+              <div class="tl-desc">Payment confirmed</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"><span></span></div>
+            <div>
+              <div class="tl-time">In 5 minutes</div>
+              <div class="tl-desc">Facility notified via WhatsApp</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot-empty"></div>
+            <div>
+              <div class="tl-time" style="color: var(--gray-500)">
+                Within 24hrs
+              </div>
+              <div class="tl-desc">Funds transferred to facility account</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot-empty"></div>
+            <div>
+              <div class="tl-time" style="color: var(--gray-500)">
+                Within 48hrs
+              </div>
+              <div class="tl-desc">Photo proof sent to your email</div>
+            </div>
+          </div>
+        </div>
+        <button
+          class="btn btn-outline btn-full"
+          style="margin-bottom: 10px"
+          onclick="
+            closeModal();
+            showPage('page-proof');
+          "
+        >
+          View Proof of Fulfillment
+        </button>
+        <button
+          class="btn-ghost btn"
+          onclick="
+            closeModal();
+            showPage('page-dashboard');
+          "
+        >
+          Back to needs
+        </button>
+      </div>
+    </div>
+
+    <script src="script.js" defer></script>
+    <script src="needs.js" defer></script>
+  </body>
+</html>
