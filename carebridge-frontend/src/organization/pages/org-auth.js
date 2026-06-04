@@ -1,5 +1,5 @@
-import { data, state } from "./org-state.js";
-import { esc, fmt } from "./org-utils.js";
+import { data, state } from "../state/org-state.js";
+import { esc, fmt } from "../utils/org-utils.js";
 
 function renderAuthPage() {
   return state.authMode === "login" ? renderLogin() : renderSignup();

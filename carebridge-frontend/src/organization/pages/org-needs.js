@@ -1,7 +1,7 @@
-import { data, state, getSelectedAmount } from "./org-state.js";
-import { fmt, esc, categoryColors, categoryIcons, timeAgo, verifiedBadge, urgencyBadge } from "./org-utils.js";
-import { renderShell } from "./org-shell.js";
-import { renderPortfolioCard, renderDiscoveryCard } from "./org-active-portfolio.js";
+import { data, state, getSelectedAmount } from "../state/org-state.js";
+import { fmt, esc, categoryColors, categoryIcons, timeAgo, verifiedBadge, urgencyBadge } from "../utils/org-utils.js";
+import { renderShell } from "../utils/org-shell.js";
+import { renderPortfolioCard, renderDiscoveryCard } from "../components/org-active-portfolio.js";
 
 function renderNeeds() {
   const f = state.needsFilter;

@@ -1,6 +1,6 @@
-import { data, state } from "./org-state.js";
-import { fmt, esc } from "./org-utils.js";
-import { renderShell } from "./org-shell.js";
+import { data, state } from "../state/org-state.js";
+import { fmt, esc } from "../utils/org-utils.js";
+import { renderShell } from "../utils/org-shell.js";
 
 function renderProfile() {
   const user = state.currentUser || {};

@@ -17,7 +17,7 @@ import {
   deriveDashboardMetrics,
   loadFacilities,
   bootstrapRemoteData,
-} from "./org-state.js";
+} from "./state/org-state.js";
 import {
   API_ENDPOINTS,
   apiFetch,
@@ -28,13 +28,13 @@ import {
   removeToken,
   saveStoredUser,
   clearStoredUser,
-} from "./org-api.js";
-import { esc, fmt, normalizeUser, normalizeNeed } from "./org-utils.js";
-import { renderAuthPage } from "./org-auth.js";
-import { renderDashboard } from "./org-dashboard.js";
-import { renderNeeds, renderNeedDetail } from "./org-needs.js";
-import { renderFinances } from "./org-finance.js";
-import { renderProfile } from "./org-profile.js";
+} from "./api/org-api.js";
+import { esc, fmt, normalizeUser, normalizeNeed } from "./utils/org-utils.js";
+import { renderAuthPage } from "./pages/org-auth.js";
+import { renderDashboard } from "./pages/org-dashboard.js";
+import { renderNeeds, renderNeedDetail } from "./pages/org-needs.js";
+import { renderFinances } from "./pages/org-finance.js";
+import { renderProfile } from "./pages/org-profile.js";
 
 function getPath() {
   const hash = window.location.hash || "#/";

@@ -3,7 +3,7 @@ import {
   getStoredUser,
   saveStoredUser,
   optionalRequest,
-} from "./org-api.js";
+} from "../api/org-api.js";
 import {
   fmt,
   normalizeUser,
@@ -11,7 +11,7 @@ import {
   normalizeDonation,
   normalizeFulfillment,
   normalizeFacility,
-} from "./org-utils.js";
+} from "../utils/org-utils.js";
 
 const DEFAULT_WALLET_BALANCE = 3100000;
 const DEFAULT_SIGNUP_STATE = {

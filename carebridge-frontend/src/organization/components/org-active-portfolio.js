@@ -1,5 +1,5 @@
-import { data } from "./org-state.js";
-import { fmt, esc, verifiedBadge, urgencyBadge, categoryColors, categoryIcons } from "./org-utils.js";
+import { data } from "../state/org-state.js";
+import { fmt, esc, verifiedBadge, urgencyBadge, categoryColors, categoryIcons } from "../utils/org-utils.js";
 
 function renderPortfolioCard(item) {
   return `
