@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CareBridge OVC — Organisation Portal</title>
+
+    <!-- Tailwind CSS via CDN (same version as the main site) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { theme: { extend: {} } };
+    </script>
+
+    <!-- Org-only stylesheet — no dependency on the public site's styles.css -->
+    <link rel="stylesheet" href="org-styles.css" />
+  </head>
+  <body class="bg-white text-gray-900">
+    <!--
+      CareBridge OVC — Organisation (GTCo) System
+      ──────────────────────────────────────────────
+      Standalone entry point. Loads only org.js.
+      No dependency on script.js or the public site.
+
+      Routes handled by org.js:
+        #/org/auth       → Sign in / Register (4-step signup)
+        #/org/dashboard  → Impact dashboard
+        #/org/needs      → Portfolio + discovery
+        #/org/needs/:id  → Need detail (fund or deliver)
+        #/org/finances   → Wallet + transactions
+        #/org/profile    → Profile, preferences, ESG reports
+
+      Starting URL: org-index.html#/org/auth
+    -->
+    <div id="app"></div>
+
+    <!--
+      org.js is fully self-contained:
+        — own data, own state, own router
+        — registers hashchange + DOMContentLoaded listeners itself
+        — the _legacyRenderCurrentPage fallback simply does nothing
+          here (no script.js), which is correct — all routes are /org/*
+    -->
+    <script src="org.js"></script>
+
+    <script>
+      /*
+        Standalone boot: if no hash is set (someone opened the file
+        directly), redirect to the org auth page so they always land
+        on the sign-in screen rather than a blank page.
+      */
+      (function () {
+        const hash = window.location.hash;
+        if (!hash || hash === "#" || hash === "#/") {
+          window.location.replace("org-index.html#/org/auth");
+        }
+      })();
+    </script>
+  </body>
+</html>
