@@ -1,0 +1,14 @@
+{
+  "name": "carebridge-frontend",
+  "version": "0.1.0",
+  "description": "CareBridge organisation frontend module (static files)",
+  "main": "org.js",
+  "scripts": {
+    "start": "npx http-server ./ -p 3000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VikkyRia/carebridge.git"
+  },
+  "license": "MIT"
+}

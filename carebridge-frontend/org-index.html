@@ -12,7 +12,7 @@
     </script>
 
     <!-- Org-only stylesheet — no dependency on the public site's styles.css -->
-    <link rel="stylesheet" href="org-styles.css" />
+    <link rel="stylesheet" href="organization.css" />
   </head>
   <body class="bg-white text-gray-900">
     <!--
@@ -29,18 +29,15 @@
         #/org/finances   → Wallet + transactions
         #/org/profile    → Profile, preferences, ESG reports
 
-      Starting URL: org-index.html#/org/auth
+      Starting URL: org-index.html#/org/dashboard
     -->
     <div id="app"></div>
 
     <!--
-      org.js is fully self-contained:
-        — own data, own state, own router
-        — registers hashchange + DOMContentLoaded listeners itself
-        — the _legacyRenderCurrentPage fallback simply does nothing
-          here (no script.js), which is correct — all routes are /org/*
+      Modular organization app entry point.
+      Loads the refactored ES module bundle from src/organization/index.js.
     -->
-    <script src="org.js"></script>
+    <script type="module" src="./src/organization/index.js"></script>
 
     <script>
       /*
@@ -51,7 +48,7 @@
       (function () {
         const hash = window.location.hash;
         if (!hash || hash === "#" || hash === "#/") {
-          window.location.replace("org-index.html#/org/auth");
+          window.location.replace("org-index.html#/org/dashboard");
         }
       })();
     </script>
